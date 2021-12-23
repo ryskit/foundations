@@ -89,10 +89,47 @@ class GenericFunctionExercisesTest extends AnyFunSuite with ScalaCheckDrivenProp
   // Exercise 3: JsonDecoder
   ////////////////////////////
 
-  test("JsonDecoder UserId") {}
+  test("JsonDecoder UserId") {
+    assert(userIdDecoder.decode("1234") == UserId(1234))
+    assert(userIdDecoder.decode("-1") == UserId(-1))
+    assert(Try(userIdDecoder.decode("hello")).isFailure)
+  }
 
-  test("JsonDecoder LocalDate") {}
+  test("JsonDecoder UserId round-trip") {
+    forAll { (number: Int) =>
+      val json = number.toString
+      assert(userIdDecoder.decode(json) == UserId(number))
+    }
+  }
 
-  test("JsonDecoder weirdLocalDateDecoder") {}
+  test("JsonDecoder LocalDate") {
+    assert(localDateDecoder.decode("\"2020-03-26\"") == LocalDate.of(2020, 3, 26))
+    assert(Try(localDateDecoder.decode("2020-03-26")).isFailure)
+    assert(Try(localDateDecoder.decode("hello")).isFailure)
+  }
+
+  test("JsonDecoder LocalDate round-trip") {
+    forAll { (localDate: LocalDate) =>
+      val json = "\"" + DateTimeFormatter.ISO_LOCAL_DATE.format(localDate) + "\""
+      assert(localDateDecoder.decode(json) == localDate)
+    }
+  }
+
+  val genLocalDate: Gen[LocalDate] =
+    Gen
+      .choose(LocalDate.MIN.toEpochDay, LocalDate.MAX.toEpochDay)
+      .map(LocalDate.ofEpochDay)
+
+  implicit val arbitraryLocalDate: Arbitrary[LocalDate] =
+    Arbitrary(genLocalDate)
+
+  test("JsonDecoder weirdLocalDateDecoder") {
+    forAll { (localDate: LocalDate) =>
+      val json1 = "\"" + DateTimeFormatter.ISO_LOCAL_DATE.format(localDate) + "\""
+      val json2 = localDate.toEpochDay.toString
+      assert(weirdLocalDateDecoder.decode(json1) == localDate)
+      assert(weirdLocalDateDecoder.decode(json2) == localDate)
+    }
+  }
 
 }
