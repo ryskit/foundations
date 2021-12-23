@@ -55,7 +55,7 @@ object GenericFunctionExercises {
   val productPrices: Pair[Double] = Pair(2.5, 329.99)
 
   lazy val products: Pair[Product] =
-    productNames.zipWith(productPrices)((x, y) => Product(x, y))
+    productNames.zipWith(productPrices)(Product)
 
   //////////////////////////////////////////////
   // Bonus question (not covered by the video)
@@ -89,7 +89,7 @@ object GenericFunctionExercises {
     //         (isEven && isPositive)(-4) == false
     //         (isEven && isPositive)(-7) == false
     def &&(other: Predicate[A]): Predicate[A] =
-      ???
+      Predicate(value => eval(value) && other.eval(value))
 
     // 2b. Implement `||` that combines two predicates using logical or
     // such as (isEven || isPositive)(12) == true
@@ -97,12 +97,19 @@ object GenericFunctionExercises {
     //         (isEven || isPositive)(-4) == true
     // but     (isEven || isPositive)(-7) == false
     def ||(other: Predicate[A]): Predicate[A] =
-      ???
+      Predicate(value => eval(value) || other.eval(value))
 
     // 2c. Implement `flip` that reverses a predicate
     // such as isEven.flip(11) == true
-    def flip: Predicate[A] =
-      ???
+    def flip: Predicate[A] = Predicate(value => !eval(value))
+
+    def contramap[To](zoom: To => A): Predicate[To] =
+      Predicate(from => eval(zoom(from)))
+  }
+
+  object Predicate {
+    def True[A]: Predicate[A]  = Predicate(_ => true)
+    def False[A]: Predicate[A] = Predicate(_ => false)
   }
 
   // 2d. Implement `isValidUser`, a predicate which checks if a `User` is:
@@ -118,7 +125,25 @@ object GenericFunctionExercises {
   case class User(name: String, age: Int)
 
   lazy val isValidUser: Predicate[User] =
-    ???
+    by(_.age)(isBiggerThan(18)) &&
+      by(_.name)(isLongerThan(3)) &&
+      by(_.name)(isCapitalized)
+
+  def by[To](zoom: User => To)(subPredicate: Predicate[To]): Predicate[User] =
+    subPredicate.contramap(zoom)
+
+  def isBiggerThan(min: Int): Predicate[Int] =
+    Predicate(_ >= min)
+
+  def isLongerThan(min: Int): Predicate[String] =
+    isBiggerThan(min).contramap(_.length)
+
+  def isCapitalized: Predicate[String] =
+    Predicate(text => text.capitalize == text)
+
+  val isAdult: Predicate[User]               = isBiggerThan(18).contramap(_.age)
+  val isUsernameLongerThan3: Predicate[User] = isBiggerThan(3).contramap(_.name.length)
+  val isUsernameCapitalized: Predicate[User] = Predicate(u => u.name == u.name.capitalize)
 
   ////////////////////////////
   // Exercise 3: JsonDecoder

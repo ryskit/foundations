@@ -27,7 +27,7 @@ class GenericFunctionExercisesTest extends AnyFunSuite with ScalaCheckDrivenProp
 
   test("Pair decoded") {
     val tmp = secret.map(_.reverse)
-    assert(tmp == Pair("", ""))
+    assert(tmp == Pair("Functional", "Programming"))
   }
 
   test("Pair zipWith") {
@@ -42,11 +42,48 @@ class GenericFunctionExercisesTest extends AnyFunSuite with ScalaCheckDrivenProp
   // Exercise 2: Predicate
   ////////////////////////////
 
-  test("Predicate &&") {}
+  test("Predicate &&") {
+    assert((isEven && isPositive)(12))
+    assert(!(isEven && isPositive)(11))
+    assert(!(isEven && isPositive)(-4))
+    assert(!(isEven && isPositive)(-7))
+  }
 
-  test("Predicate ||") {}
+  test("Predicate && PBT") {
+    forAll { (eval1: Int => Boolean, value: Int) =>
+      val p1 = Predicate(eval1)
 
-  test("Predicate flip") {}
+      assert((p1 && Predicate.True)(value) == p1(value))
+      assert(!(p1 && Predicate.False)(value))
+    }
+  }
+
+  test("Predicate ||") {
+    assert((isEven || isPositive)(12))
+    assert((isEven || isPositive)(11))
+    assert((isEven || isPositive)(-4))
+    assert(!(isEven || isPositive)(-7))
+  }
+
+  test("Predicate || PBT") {
+    forAll { (eval1: Int => Boolean, value: Int) =>
+      val p1 = Predicate(eval1)
+      assert((p1 || Predicate.False)(value) == p1(value))
+      assert((p1 || Predicate.True)(value))
+    }
+  }
+
+  test("Predicate flip") {
+    assert(isPositive.flip(5) == false)
+    assert(isPositive.flip(-5) == true)
+  }
+
+  test("Predicate isValidUser") {
+    assert(isValidUser(User("John", 20)) == true)
+    assert(isValidUser(User("John", 17)) == false)
+    assert(isValidUser(User("john", 20)) == false)
+    assert(isValidUser(User("x", 23)) == false)
+  }
 
   ////////////////////////////
   // Exercise 3: JsonDecoder
