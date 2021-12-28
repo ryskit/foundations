@@ -23,7 +23,7 @@ object TemperatureNotebook extends App {
 
   val rows: List[Either[ReadError, Sample]] = reader.toList
 
-  val failures: List[ReadError] = rows.collect { case Left(error)   => error }
+  val failures: List[ReadError] = rows.collect { case Left(error) => error }
   val samples: List[Sample]     = rows.collect { case Right(sample) => sample }
 
   // we can also extract failures and successes in one go using `partitionMap`
@@ -34,16 +34,25 @@ object TemperatureNotebook extends App {
   // a. Implement `samples`, a `ParList` containing all the `Samples` in `successes`.
   // Partition `parSamples` so that it contains 10 partitions of roughly equal size.
   // Note: Check `ParList` companion object
+  val partitionSize = math.ceil(samples.size.toDouble / 10).toInt
   lazy val parSamples: ParList[Sample] =
-    ???
+    ParList.byPartitionSize(partitionSize, samples)
+
+  parSamples.partitions.zipWithIndex.foreach { case (partition, index) =>
+    println(s"partition ${index} has size ${partition.size}")
+  }
 
   // b. Implement `minSampleByTemperature` in TemperatureExercises
   lazy val coldestSample: Option[Sample] =
     TemperatureExercises.minSampleByTemperature(parSamples)
 
+  println(s"The coldest sample is $coldestSample")
+
   // c. Implement `averageTemperature` in TemperatureExercises
-  lazy val averageTemperature: Option[Double] =
+  val averageTemperature: Option[Double] =
     TemperatureExercises.averageTemperature(parSamples)
+
+  println(s"The average temperature is $averageTemperature")
 
   //////////////////////
   // Benchmark ParList
@@ -56,7 +65,7 @@ object TemperatureNotebook extends App {
   // * TODO ParList parFoldMap
   bench("sum", iterations = 200, warmUpIterations = 40, ignore = true)(
     Labelled("List foldLeft", () => samples.foldLeft(0.0)((state, sample) => state + sample.temperatureFahrenheit)),
-    Labelled("List map + sum", () => samples.map(_.temperatureFahrenheit).sum),
+    Labelled("List map + sum", () => samples.map(_.temperatureFahrenheit).sum)
 //    Labelled("ParList foldMap", () => ???),
 //    Labelled("ParList parFoldMap", () => ???),
   )
@@ -70,7 +79,7 @@ object TemperatureNotebook extends App {
     Labelled("List 4 iterations", () => TemperatureExercises.summaryList(samples)),
     Labelled("List 1 iteration", () => TemperatureExercises.summaryListOnePass(samples)),
     Labelled("ParList 4 iterations", () => TemperatureExercises.summaryParList(parSamples)),
-    Labelled("ParList 1 iteration", () => TemperatureExercises.summaryParListOnePass(parSamples)),
+    Labelled("ParList 1 iteration", () => TemperatureExercises.summaryParListOnePass(parSamples))
   )
 
   //////////////////////////////////////////////
