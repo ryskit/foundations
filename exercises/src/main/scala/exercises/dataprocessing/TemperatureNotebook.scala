@@ -5,6 +5,8 @@ import exercises.dataprocessing.TimeUtil.{bench, Labelled}
 import kantan.csv._
 import kantan.csv.ops._
 
+import scala.concurrent.ExecutionContext
+
 // Run the notebook using green arrow (if available in your IDE)
 // or run `sbt` in your terminal to open sbt in shell mode then type:
 // exercises/runMain exercises.dataprocessing.TemperatureNotebook
@@ -35,8 +37,9 @@ object TemperatureNotebook extends App {
   // Partition `parSamples` so that it contains 10 partitions of roughly equal size.
   // Note: Check `ParList` companion object
   val partitionSize = math.ceil(samples.size.toDouble / 10).toInt
+  val ec            = fixedSizeExecutionContext(8)
   lazy val parSamples: ParList[Sample] =
-    ParList.byPartitionSize(partitionSize, samples)
+    ParList.byPartitionSize(partitionSize, samples, ec)
 
   parSamples.partitions.zipWithIndex.foreach { case (partition, index) =>
     println(s"partition ${index} has size ${partition.size}")
@@ -54,6 +57,8 @@ object TemperatureNotebook extends App {
 
   println(s"The average temperature is $averageTemperature")
 
+  parSamples.parFoldMap(_.temperatureFahrenheit)(Monoid.sumDouble)
+
   //////////////////////
   // Benchmark ParList
   //////////////////////
@@ -63,11 +68,11 @@ object TemperatureNotebook extends App {
   // * List map + sum
   // * TODO ParList foldMap
   // * TODO ParList parFoldMap
-  bench("sum", iterations = 200, warmUpIterations = 40, ignore = true)(
+  bench("sum", iterations = 200, warmUpIterations = 40)(
     Labelled("List foldLeft", () => samples.foldLeft(0.0)((state, sample) => state + sample.temperatureFahrenheit)),
-    Labelled("List map + sum", () => samples.map(_.temperatureFahrenheit).sum)
-//    Labelled("ParList foldMap", () => ???),
-//    Labelled("ParList parFoldMap", () => ???),
+    Labelled("List map + sum", () => samples.map(_.temperatureFahrenheit).sum),
+    Labelled("ParList foldMap", () => parSamples.foldMap(_.temperatureFahrenheit)(Monoid.sumDouble)),
+    Labelled("ParList parFoldMap", () => parSamples.parFoldMap(_.temperatureFahrenheit)(Monoid.sumDouble))
   )
 
   // Compare the runtime performance of various implementations of `summary`
