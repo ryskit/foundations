@@ -113,15 +113,40 @@ object TemperatureExercises {
   // should return the same result as `summaryList`
   def summaryParList(samples: ParList[Sample]): Summary =
     Summary(
-      min = ???,
-      max = ???,
-      sum = ???,
-      size = ???
+      min = samples.parFoldMap(Option(_))(Monoid.minSample),
+      max = samples.parFoldMap(Option(_))(Monoid.maxSample),
+      sum = samples.parFoldMap(sample => sample.temperatureFahrenheit)(Monoid.sumDouble),
+      size = samples.parFoldMap(_ => 1)(Monoid.sumInt)
     )
 
   // Implement `summaryParListOnePass` using `parFoldMap` only ONCE.
   // Note: In `ParListTest.scala`, there is already a test checking that `summaryParListOnePass`
   // should return the same result as `summaryList`
   def summaryParListOnePass(samples: ParList[Sample]): Summary =
-    ???
+    samples.parFoldMap(sampleToSummary)(Summary.monoid)
+
+  def sampleToSummary(sample: Sample): Summary =
+    Summary(
+      min = Some(sample),
+      max = Some(sample),
+      sum = sample.temperatureFahrenheit,
+      size = 1
+    )
+
+  def sampleToOutput(keys: Sample => List[String])(sample: Sample): Map[String, Summary] =
+    keys(sample).map(key => key -> sampleToSummary(sample)).toMap
+
+  val monoidOutput: Monoid[Map[String, Summary]] = new Monoid[Map[String, Summary]] {
+    override def default: Map[String, Summary] = Map.empty
+    override def combine(first: Map[String, Summary], second: Map[String, Summary]): Map[String, Summary] =
+      second.foldLeft(first) { case (state, (city, summary)) =>
+        state.updatedWith(city) {
+          case None                 => Some(summary)
+          case Some(currentSummary) => Some(Summary.monoid.combine(currentSummary, summary))
+        }
+      }
+  }
+
+  def aggregateByLabel(samples: ParList[Sample])(keys: Sample => List[String]): Map[String, Summary] =
+    samples.parFoldMap(sampleToOutput(keys))(monoidOutput)
 }

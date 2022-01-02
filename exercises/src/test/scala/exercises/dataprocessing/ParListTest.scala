@@ -107,6 +107,7 @@ class ParListTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks with P
   checkMonoid("sumDoubleInt", Monoid.sumDoubleInt, Gen.zip(doubleGen, intGen))
   checkMonoid("zip", Monoid.zip(Monoid.sumInt, Monoid.sumInt), Gen.zip(intGen, intGen))
   checkMonoid("minSample", Monoid.minSample, Gen.option(sampleGen))
+  checkMonoid("maxSample", Monoid.maxSample, Gen.option(sampleGen))
 
   implicit override val generatorDrivenConfig: PropertyCheckConfiguration =
     PropertyCheckConfiguration(minSuccessful = 100)
@@ -128,7 +129,7 @@ class ParListTest extends AnyFunSuite with ScalaCheckDrivenPropertyChecks with P
     }
   }
 
-  ignore("summary is consistent between implementations") {
+  test("summary is consistent between implementations") {
     forAll { (samples: ParList[Sample]) =>
       val samplesList = samples.partitions.flatten
       val reference   = summaryList(samples.partitions.flatten)

@@ -57,8 +57,12 @@ object TemperatureNotebook extends App {
 
   println(s"The average temperature is $averageTemperature")
 
-  parSamples.parFoldMap(_.temperatureFahrenheit)(Monoid.sumDouble)
+//  parSamples.parFoldMap(_.temperatureFahrenheit)(Monoid.sumDouble)
 
+  TemperatureExercises.aggregateByLabel(parSamples)(sample => List(sample.city, sample.country)).foreach {
+    case (label, summary) =>
+      println(s"The summary for label $label is $summary")
+  }
   //////////////////////
   // Benchmark ParList
   //////////////////////
@@ -80,7 +84,7 @@ object TemperatureNotebook extends App {
   // * List with 1 iterations
   // * TODO ParList with 4 iterations
   // * TODO ParList with 1 iteration
-  bench("summary", iterations = 200, warmUpIterations = 40, ignore = true)(
+  bench("summary", iterations = 200, warmUpIterations = 40)(
     Labelled("List 4 iterations", () => TemperatureExercises.summaryList(samples)),
     Labelled("List 1 iteration", () => TemperatureExercises.summaryListOnePass(samples)),
     Labelled("ParList 4 iterations", () => TemperatureExercises.summaryParList(parSamples)),

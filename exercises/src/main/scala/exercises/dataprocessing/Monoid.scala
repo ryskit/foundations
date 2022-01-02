@@ -26,7 +26,7 @@ object Monoid {
 
   val sumDoubleInt: Monoid[(Double, Int)] = zip(sumDouble, sumInt)
 
-  val minSample: Monoid[Option[Sample]] = new Monoid[Option[Sample]] {
+  def compareSample(compare: (Sample, Sample) => Sample): Monoid[Option[Sample]] = new Monoid[Option[Sample]] {
     override def default: Option[Sample] = None
     override def combine(first: Option[Sample], second: Option[Sample]): Option[Sample] =
       (first, second) match {
@@ -34,7 +34,19 @@ object Monoid {
         case (Some(sample), None) => Some(sample)
         case (None, Some(sample)) => Some(sample)
         case (Some(sample1), Some(sample2)) =>
-          if (sample1.temperatureFahrenheit < sample2.temperatureFahrenheit) Some(sample1) else Some(sample2)
+          Some(compare(sample1, sample2))
       }
   }
+
+  val minSample: Monoid[Option[Sample]] =
+    compareSample((sample1, sample2) =>
+      if (sample1.temperatureFahrenheit < sample2.temperatureFahrenheit)
+        sample1
+      else sample2
+    )
+
+  val maxSample: Monoid[Option[Sample]] =
+    compareSample((sample1, sample2) =>
+      if (sample1.temperatureFahrenheit > sample2.temperatureFahrenheit) sample1 else sample2
+    )
 }
