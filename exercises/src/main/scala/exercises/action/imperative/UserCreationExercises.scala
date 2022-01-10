@@ -13,7 +13,7 @@ import scala.util.{Failure, Success, Try}
 object UserCreationApp extends App {
   import UserCreationExercises._
 
-//  readUser()
+  readUser(Console.system)
 }
 
 object UserCreationExercises {
@@ -117,10 +117,10 @@ object UserCreationExercises {
   // Note: How can you mock the current time? Check the `Clock` class in this package
   //       and update the signature of `readUser`.
   def readUser(console: Console, clock: Clock = Clock.system): User = {
-    console.writeLine("What's your name?")
     val name        = readName(console)
-    val dateOfBirth = readDateOfBirth(console)
-    val subscribed  = readSubscribeToMailingList(console)
+    val MAX_ATTEMPT = 3
+    val dateOfBirth = readDateOfBirthRetry(console, MAX_ATTEMPT)
+    val subscribed  = readSubscribeToMailingListRetry(console, MAX_ATTEMPT)
     val now         = clock.now()
     val user        = User(name, dateOfBirth, subscribed, now)
     console.writeLine(user.toString)
@@ -148,8 +148,20 @@ object UserCreationExercises {
   // Note: `maxAttempt` must be greater than 0, if not you should throw an exception.
   // Note: You can implement the retry logic using recursion or a for/while loop. I suggest
   //       trying both possibilities.
-  def readSubscribeToMailingListRetry(console: Console, maxAttempt: Int): Boolean =
-    ???
+  @tailrec
+  def readSubscribeToMailingListRetry(console: Console, maxAttempt: Int): Boolean = {
+    require(maxAttempt > 0, "maxAttempt must be greater than 0")
+
+    console.writeLine("Would you like to subscribe to our mailing list? [Y/N]")
+    val line = console.readLine()
+    Try(parseYesNo(line)) match {
+      case Success(yesNo) => yesNo
+      case Failure(exception) =>
+        console.writeLine("""Incorrect format, enter "Y" for Yes or "N" for "No"""")
+        if (maxAttempt == 1) throw exception
+        else readSubscribeToMailingListRetry(console, maxAttempt - 1)
+    }
+  }
 
   // 6. Implement `readDateOfBirthRetry` which behaves like
   // `readDateOfBirth` but retries when the user enters an invalid input.
@@ -166,8 +178,19 @@ object UserCreationExercises {
   // [Prompt] Incorrect format, for example enter "18-03-2001" for 18th of March 2001
   // Throws an exception because the user only had 1 attempt and they entered an invalid input.
   // Note: `maxAttempt` must be greater than 0, if not you should throw an exception.
-  def readDateOfBirthRetry(console: Console, maxAttempt: Int): LocalDate =
-    ???
+  def readDateOfBirthRetry(console: Console, maxAttempt: Int): LocalDate = {
+    require(maxAttempt > 0, "maxAttempt must be greater than 0")
+
+    console.writeLine("What's your date of birth? [dd-mm-yyyy]")
+    val line = console.readLine()
+    Try(LocalDate.parse(line, dateOfBirthFormatter)) match {
+      case Success(dateOfBirth) => dateOfBirth
+      case Failure(exception) =>
+        console.writeLine("""Incorrect format, for example enter "18-03-2001" for 18th of March 2001""")
+        if (maxAttempt == 1) throw exception
+        else readDateOfBirthRetry(console, maxAttempt - 1)
+    }
+  }
 
   // 7. Update `readUser` so that it allows the user to make up to 2 mistakes (3 attempts)
   // when entering their date of birth and mailing list subscription flag.
