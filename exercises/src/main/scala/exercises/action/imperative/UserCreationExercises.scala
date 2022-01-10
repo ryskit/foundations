@@ -7,6 +7,39 @@ import scala.annotation.tailrec
 import scala.io.StdIn
 import scala.util.{Failure, Success, Try}
 
+object UserCreationServiceApp extends App {
+  val console = Console.system
+  val clock   = Clock.system
+  val service = new UserCreationService(console, clock)
+}
+
+class UserCreationService(console: Console, clock: Clock) {
+  import UserCreationService._
+}
+
+object UserCreationService {
+
+  val dateOfBirthFormatter: DateTimeFormatter =
+    DateTimeFormatter.ofPattern("dd-MM-uuuu")
+
+  def parseYesNo(line: String): Boolean =
+    line match {
+      case "Y"   => true
+      case "N"   => false
+      case other => throw new IllegalArgumentException(s"""Expected "Y" or "N" but received $other""")
+    }
+
+  def formatYesNo(bool: Boolean): String =
+    if (bool) "Y" else "N"
+
+  def parseDateOfBirth(line: String): LocalDate =
+    Try(LocalDate.parse(line, dateOfBirthFormatter))
+      .getOrElse(throw new IllegalArgumentException(s"Expected a date with format dd-mm-yyyy but received $line"))
+
+  def formatDateOfBirth(date: LocalDate): String =
+    dateOfBirthFormatter.format(date)
+}
+
 // Run the App using the green arrow next to object (if using IntelliJ)
 // or run `sbt` in the terminal to open it in shell mode, then type:
 // exercises/runMain exercises.action.imperative.UserCreationApp
